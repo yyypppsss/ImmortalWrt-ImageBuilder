@@ -171,11 +171,8 @@ fi
 # 方便各类docker容器的端口顺利通过防火墙 
 if command -v dockerd >/dev/null 2>&1; then
     echo "检测到 Docker，正在配置防火墙规则..."
-    FW_FILE="/etc/config/firewall"
-
     # 删除所有名为 docker 的 zone
     uci delete firewall.docker
-
     # 先获取所有 forwarding 索引，倒序排列删除
     for idx in $(uci show firewall | grep "=forwarding" | cut -d[ -f2 | cut -d] -f1 | sort -rn); do
         src=$(uci get firewall.@forwarding[$idx].src 2>/dev/null)
@@ -186,34 +183,32 @@ if command -v dockerd >/dev/null 2>&1; then
             uci delete firewall.@forwarding[$idx]
         fi
     done
-    # 提交删除
+
+    # 使用uci命令创建docker zone，不再直接写文件
+    uci set firewall.docker=zone
+    uci set firewall.docker.input='ACCEPT'
+    uci set firewall.docker.output='ACCEPT'
+    uci set firewall.docker.forward='ACCEPT'
+    uci set firewall.docker.name='docker'
+    uci del_list firewall.docker.subnet '172.16.0.0/12' 2>/dev/null
+    uci add_list firewall.docker.subnet '172.16.0.0/12'
+
+    uci add firewall forwarding
+    uci set firewall.@forwarding[-1].src='docker'
+    uci set firewall.@forwarding[-1].dest='lan'
+
+    uci add firewall forwarding
+    uci set firewall.@forwarding[-1].src='docker'
+    uci set firewall.@forwarding[-1].dest='wan'
+
+    uci add firewall forwarding
+    uci set firewall.@forwarding[-1].src='lan'
+    uci set firewall.@forwarding[-1].dest='docker'
+
     uci commit firewall
-
-# 追加新的 zone + forwarding 配置
-cat <<EOF >>"$FW_FILE"
-
-config zone 'docker'
-  option input 'ACCEPT'
-  option output 'ACCEPT'
-  option forward 'ACCEPT'
-  option name 'docker'
-  list subnet '172.16.0.0/12'
-
-config forwarding
-  option src 'docker'
-  option dest 'lan'
-
-config forwarding
-  option src 'docker'
-  option dest 'wan'
-
-config forwarding
-  option src 'lan'
-  option dest 'docker'
-EOF
-
 else
     echo "未检测到 Docker，跳过防火墙配置。"
 fi
+
 
 exit 0
