@@ -1,3 +1,7 @@
+# [修改位置](https://github.com/wukongdaily/AutoBuildImmortalWrt/wiki) 👈🏻
+docker防火墙用了fw4
+
+openclash下载run   https://github.com/wkccd/CloudRunFilesBuilder/releases/
 # [新手指导](https://github.com/wukongdaily/AutoBuildImmortalWrt/wiki) 👈🏻
 # ImmortalWrt-ImageBuilder
 
